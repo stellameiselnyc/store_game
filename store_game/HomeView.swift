@@ -6,19 +6,19 @@ struct HomeView: View {
         let id: UUID
         let month: Int
         let shirts: Int
-
+        
         init(month: Int, shirts: Int, id: UUID = UUID()) {
             self.id = id
             self.month = month
             self.shirts = shirts
         }
     }
-
+    
     let storeName: String
     let bagColor: Color
-
+    
     @AppStorage("monthsData") private var monthsData: Data = Data()
-
+    
     private var months: [MonthRecord] {
         get {
             if monthsData.isEmpty {
@@ -52,11 +52,10 @@ struct HomeView: View {
     private var availablecash: Int {
         months.reduce(0) { $0 + ($1.shirts * 40) }
     }
-
+    
     var body: some View {
         VStack(spacing: 24) {
-            HStack{
-                
+            HStack {
                 Text(storeName)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Image("bluebag")
@@ -65,20 +64,18 @@ struct HomeView: View {
                     .scaledToFit()
                     .foregroundStyle(bagColor)
                     .frame(width: 30, height: 30)
-
             }
-               
+
             Text("Net Worth:")
                 .frame(maxWidth: .infinity, alignment: .leading)
-                
-            HStack{
+
+            HStack {
                 Text("Available Cash: $\(availablecash)")
                     .frame(maxWidth: .infinity, alignment: .leading)
-               
             }
+
             HStack {
-                
-                NavigationLink(destination: OfficeView(storeName: storeName, bagColor: bagColor)) {
+                NavigationLink(destination: StoreOfficeView(storeName: storeName, bagColor: bagColor)) {
                     ZStack {
                         Image(systemName: "star.fill")
                             .font(.system(size: 90))
@@ -87,30 +84,25 @@ struct HomeView: View {
                             .font(.system(size: 15, weight: .bold))
                             .foregroundStyle(.white)
                     }
-                    
-                    
                 }
-
-                ZStack {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 90))
-                    Text("store")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.white)
-                }
-
-                ZStack {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 90))
-                    Text("factory")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.white)
-                
-                }
-                
-               
             }
-            
+
+            ZStack {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 90))
+                Text("store")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+
+            ZStack {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 90))
+                Text("factory")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+
             Text("Updates:")
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -127,7 +119,6 @@ struct HomeView: View {
                 }
                 .padding(.bottom, 80) // keep content above the floating button
             }
-            
         }
         .padding()
         .background(pastelBackground.ignoresSafeArea())
@@ -138,6 +129,7 @@ struct HomeView: View {
                     let nextMonth = (months.map { $0.month }.max() ?? 0) + 1
                     var updated = months
                     updated.append(MonthRecord(month: nextMonth, shirts: Int.random(in: 2...10)))
+                    // Persist by encoding directly to @AppStorage to avoid mutating self
                     if let data = try? JSONEncoder().encode(updated) {
                         monthsData = data
                     }
@@ -157,38 +149,40 @@ struct HomeView: View {
     }
 }
 
-struct OfficeView: View {
-    let storeName: String
-    let bagColor: Color
+//
+//struct OfficeView: View {
+//    let storeName: String
+//    let bagColor: Color
+//
+//    var body: some View {
+//        VStack(spacing: 16) {
+//            HStack {
+//                Text("Office")
+//                    .font(.caption)
+//                    .bold()
+//                Spacer()
+//            }
+//            .padding(.top)
+//            
+//          
+//            
+//            Text("Welcome to the office for \(storeName)")
+//                .font(.headline)
+//            
+//            Spacer()
+//            
+//        }
+//        .padding()
+//        .navigationTitle("Office")
+//        .navigationBarTitleDisplayMode(.inline)
+//    }
+//}
+//
+//#Preview {
+//    NavigationStack {
+//        HomeView(storeName: "Demo Store", bagColor: .blue)
+//    }
+//}
+//
 
-    var body: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text("Office")
-                    .font(.largeTitle)
-                    .bold()
-                Spacer()
-            }
-            .padding(.top)
-            
-            Image(systemName: "building.2.fill")
-                .font(.system(size: 80))
-                .foregroundStyle(bagColor)
-            
-            Text("Welcome to the office for \(storeName)")
-                .font(.headline)
-            
-            Spacer()
-            
-        }
-        .padding()
-        .navigationTitle("Office")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
 
-#Preview {
-    NavigationStack {
-        HomeView(storeName: "Demo Store", bagColor: .blue)
-    }
-}
