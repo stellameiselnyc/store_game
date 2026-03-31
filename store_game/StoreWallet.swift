@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 
 final class StoreWallet: ObservableObject {
     @Published var cash: Int
@@ -8,3 +9,4 @@ final class StoreWallet: ObservableObject {
         self.cash = cash
     }
 }
+

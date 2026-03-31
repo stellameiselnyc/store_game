@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ShirtView: View {
+struct ShirtMachineView: View {
     @EnvironmentObject var wallet: StoreWallet
     let bagColor: Color = .blue
     private var pastelColor: Color {
@@ -162,6 +162,6 @@ private struct MachineCard: View {
 }
 
 #Preview {
-    ShirtView()
+    ShirtMachineView()
         .environmentObject(StoreWallet(cash: 1000))
 }

@@ -12,6 +12,7 @@ struct store_gameApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(StoreWallet())
         }
     }
 }

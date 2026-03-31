@@ -85,24 +85,25 @@ struct HomeView: View {
                             .foregroundStyle(.white)
                     }
                 }
+                
+                
+                ZStack {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 90))
+                    Text("store")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                NavigationLink(destination: FactoryView (bagColor: bagColor)) {
+                    ZStack {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 90))
+                            .foregroundStyle(.black)
+                        Text("factory")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(.white)
+                    }}
             }
-
-            ZStack {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 90))
-                Text("store")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(.white)
-            }
-
-            ZStack {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 90))
-                Text("factory")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(.white)
-            }
-
             Text("Updates:")
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -144,45 +145,17 @@ struct HomeView: View {
                 .padding(.bottom, 24)
             }
         )
-        .navigationTitle("Home")
+       // .navigationTitle("Home")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
 
-//
-//struct OfficeView: View {
-//    let storeName: String
-//    let bagColor: Color
-//
-//    var body: some View {
-//        VStack(spacing: 16) {
-//            HStack {
-//                Text("Office")
-//                    .font(.caption)
-//                    .bold()
-//                Spacer()
-//            }
-//            .padding(.top)
-//            
-//          
-//            
-//            Text("Welcome to the office for \(storeName)")
-//                .font(.headline)
-//            
-//            Spacer()
-//            
-//        }
-//        .padding()
-//        .navigationTitle("Office")
-//        .navigationBarTitleDisplayMode(.inline)
-//    }
-//}
-//
-//#Preview {
-//    NavigationStack {
-//        HomeView(storeName: "Demo Store", bagColor: .blue)
-//    }
-//}
-//
+
+#Preview {
+    NavigationStack {
+        HomeView(storeName: "Demo Store", bagColor: .blue)
+    }
+}
+
 
 
