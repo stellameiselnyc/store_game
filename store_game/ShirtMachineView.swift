@@ -9,45 +9,48 @@ import SwiftUI
 
 struct ShirtMachineView: View {
     @EnvironmentObject var wallet: StoreWallet
+    
     let bagColor: Color = .blue
+    
     private var pastelColor: Color {
         bagColor.opacity(0.2)
     }
+    
     @State private var showingPopup = false
     @State private var machineOptions: [String] = []
     @State private var selectedMachine: String? = nil
-    @State private var purchasedMachines: [String] = []
+    
+    @State private var purchasedMachines: [Machine] = []
 
     private var computedPrice: Int {
         guard let selected = selectedMachine else { return 0 }
-        // Expected format: "Machine XXXX (new)" or "Machine XXXX (old)"
         let parts = selected.split(separator: " ")
-        // Try to find the numeric component
         let number = parts.compactMap { Int($0) }.first ?? 0
         let isNew = selected.contains("(new)")
-        // Base price proportional to number, scaled down
-        let base = number
-        // Apply a multiplier for new vs old
         let multiplier: Double = isNew ? 1.2 : 0.9
-        return Int(Double(base) * multiplier)
+        return Int(Double(number) * multiplier)
     }
 
     var body: some View {
-        VStack{
+        VStack {
             VStack(spacing: 12) {
-                // Render a card for each purchased machine; if none, show the original default card
                 HStack {
                     Text("Shirt Machines")
                         .font(.largeTitle)
                         .bold()
                     Spacer()
                 }
-               
+
                 if purchasedMachines.isEmpty {
-                    MachineCard(title: "Machine 1000", subtitle: selectedMachine, bagColor: bagColor, pastelColor: pastelColor)
+                    Text("No machines yet")
+                        .foregroundStyle(.secondary)
                 } else {
-                    ForEach(purchasedMachines, id: \.self) { machine in
-                        MachineCard(title: machine.components(separatedBy: " (").first ?? machine, subtitle: machine, bagColor: bagColor, pastelColor: pastelColor)
+                    ForEach(purchasedMachines) { machine in
+                        MachineCard(
+                            machine: machine,
+                            bagColor: bagColor,
+                            pastelColor: pastelColor
+                        )
                     }
                 }
             }
@@ -55,7 +58,7 @@ struct ShirtMachineView: View {
 
             Button(action: {
                 showingPopup = true
-                // Generate a few random machine labels like "Machine 1234 (new)" or "Machine 5678 (old)"
+                
                 var options: [String] = []
                 for _ in 0..<5 {
                     let number = Int.random(in: 1000...9999)
@@ -63,6 +66,7 @@ struct ShirtMachineView: View {
                     let label = "Machine \(number) (\(isNew ? "new" : "old"))"
                     options.append(label)
                 }
+                
                 machineOptions = options
                 selectedMachine = options.first
             }) {
@@ -73,8 +77,9 @@ struct ShirtMachineView: View {
                     .padding()
             }
             .background(pastelColor)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
             .padding(.horizontal)
+
             Spacer()
         }
         .overlay(
@@ -83,6 +88,7 @@ struct ShirtMachineView: View {
                     ZStack {
                         Color.black.opacity(0.2)
                             .ignoresSafeArea()
+
                         VStack(spacing: 20) {
                             Text("Buy Machine")
                                 .font(.headline)
@@ -97,70 +103,94 @@ struct ShirtMachineView: View {
                                 }
                             }
                             .pickerStyle(.menu)
-                            .tint(bagColor)
 
                             Text("Price: $\(computedPrice)")
-                                .font(.headline)
                                 .foregroundStyle(bagColor)
 
                             Spacer()
 
                             HStack {
-                                Button("Cancel") { showingPopup = false }
-                                    .foregroundStyle(.secondary)
+                                Button("Cancel") {
+                                    showingPopup = false
+                                }
+
                                 Spacer()
+
                                 Button("Confirm") {
-                                    // Subtract price from available cash
                                     wallet.cash = max(0, wallet.cash - computedPrice)
+
                                     if let selected = selectedMachine {
-                                        purchasedMachines.append(selected)
+                                        let parts = selected.split(separator: " ")
+                                        let number = parts.compactMap { Int($0) }.first ?? 1000
+                                        let isNew = selected.contains("(new)")
+                                        
+                                        let age = isNew ? 1 : Int.random(in: 5...15)
+                                        
+                                        let machine = Machine(
+                                            name: "Machine \(number)",
+                                            number: number,
+                                            age: age
+                                        )
+                                        
+                                        purchasedMachines.append(machine)
                                     }
+
                                     showingPopup = false
                                 }
                                 .disabled(selectedMachine == nil)
-                                .foregroundStyle(bagColor)
                             }
-                            .padding(.top, 8)
                         }
-                        .frame(minWidth: 280, maxWidth: 320, minHeight: 360)
-                        .padding(20)
+                        .frame(width: 300, height: 350)
+                        .padding()
                         .background(.thinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .shadow(radius: 10)
-                        .padding(.horizontal, 24)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
                     }
-                    .transition(.opacity)
-                    .animation(.easeInOut, value: showingPopup)
                 }
             }
         )
     }
 }
-
 private struct MachineCard: View {
-    let title: String
-    let subtitle: String?
+    @ObservedObject var machine: Machine
+    
     let bagColor: Color
     let pastelColor: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(machine.name)
                 .font(.headline)
                 .foregroundStyle(bagColor)
-            if let subtitle, !subtitle.isEmpty {
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+
+            Text("\(machine.efficiency) shirts/day")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            Text("Condition: \(machine.condition)%")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Text("Age: \(machine.age)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack {
+                Button("Upgrade") {
+                    machine.upgradeLevel += 1
+                }
+
+                Button("Maintain") {
+                    machine.condition = 100
+                }
             }
+            .font(.caption)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(pastelColor)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
-
 #Preview {
     ShirtMachineView()
         .environmentObject(StoreWallet(cash: 1000))
