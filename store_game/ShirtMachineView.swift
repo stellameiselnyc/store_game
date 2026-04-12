@@ -1,10 +1,3 @@
-//
-//  ShirtView.swift
-//  store_game
-//
-//  Created by Stella Meisel on 3/19/26.
-//
-
 import SwiftUI
 
 struct ShirtMachineView: View {
@@ -17,18 +10,31 @@ struct ShirtMachineView: View {
     }
     
     @State private var showingPopup = false
-    @State private var machineOptions: [String] = []
-    @State private var selectedMachine: String? = nil
-    
+    @State private var machineOptions: [Machine] = []
+    @State private var selectedMachineID: Machine.ID? = nil
+    @State private var selectedMachine: Machine? = nil
     @State private var purchasedMachines: [Machine] = []
+    @AppStorage("purchasedMachinesData") private var purchasedMachinesData: Data = Data()
 
+    // ✅ FIXED PRICE
     private var computedPrice: Int {
         guard let selected = selectedMachine else { return 0 }
-        let parts = selected.split(separator: " ")
-        let number = parts.compactMap { Int($0) }.first ?? 0
-        let isNew = selected.contains("(new)")
-        let multiplier: Double = isNew ? 1.2 : 0.9
-        return Int(Double(number) * multiplier)
+        
+        let base = selected.number
+        let multiplier = selected.age < 5 ? 1.2 : 0.9
+        
+        return Int(Double(base) * multiplier)
+    }
+
+    private func savePurchasedMachines() {
+        if let data = Machine.encode(purchasedMachines) {
+            purchasedMachinesData = data
+        }
+    }
+
+    private func loadPurchasedMachines() {
+        guard !purchasedMachinesData.isEmpty else { return }
+        purchasedMachines = Machine.decode(purchasedMachinesData)
     }
 
     var body: some View {
@@ -51,6 +57,12 @@ struct ShirtMachineView: View {
                             bagColor: bagColor,
                             pastelColor: pastelColor
                         )
+                        .onChange(of: machine.upgradeLevel) { _ in
+                            savePurchasedMachines()
+                        }
+                        .onChange(of: machine.condition) { _ in
+                            savePurchasedMachines()
+                        }
                     }
                 }
             }
@@ -59,16 +71,23 @@ struct ShirtMachineView: View {
             Button(action: {
                 showingPopup = true
                 
-                var options: [String] = []
+                var options: [Machine] = []
                 for _ in 0..<5 {
                     let number = Int.random(in: 1000...9999)
-                    let isNew = Bool.random()
-                    let label = "Machine \(number) (\(isNew ? "new" : "old"))"
-                    options.append(label)
+                    let age = Int.random(in: 0...20)
+                    
+                    let machine = Machine(
+                        name: "Machine \(number)",
+                        number: number,
+                        age: age
+                    )
+                    
+                    options.append(machine)
                 }
                 
                 machineOptions = options
                 selectedMachine = options.first
+                selectedMachineID = options.first?.id
             }) {
                 Text("Buy New Machine")
                     .font(.headline)
@@ -82,6 +101,7 @@ struct ShirtMachineView: View {
 
             Spacer()
         }
+        .onAppear { loadPurchasedMachines() }
         .overlay(
             Group {
                 if showingPopup {
@@ -94,15 +114,20 @@ struct ShirtMachineView: View {
                                 .font(.headline)
                                 .foregroundStyle(bagColor)
 
-                            Picker("Choose Machine", selection: Binding(
-                                get: { selectedMachine ?? "" },
-                                set: { selectedMachine = $0.isEmpty ? nil : $0 }
-                            )) {
-                                ForEach(machineOptions, id: \.self) { option in
-                                    Text(option).tag(option)
+                            // ✅ FIXED PICKER
+                            Picker("Choose Machine", selection: $selectedMachineID) {
+                                ForEach(machineOptions) { option in
+                                    Text(option.name).tag(Optional(option.id))
                                 }
                             }
                             .pickerStyle(.menu)
+                            .onChange(of: selectedMachineID) { newID in
+                                if let id = newID {
+                                    selectedMachine = machineOptions.first(where: { $0.id == id })
+                                } else {
+                                    selectedMachine = nil
+                                }
+                            }
 
                             Text("Price: $\(computedPrice)")
                                 .foregroundStyle(bagColor)
@@ -116,28 +141,19 @@ struct ShirtMachineView: View {
 
                                 Spacer()
 
+                                // ✅ FIXED CONFIRM + CLONING
                                 Button("Confirm") {
+                                    guard let selected = selectedMachine else { return }
+
                                     wallet.cash = max(0, wallet.cash - computedPrice)
 
-                                    if let selected = selectedMachine {
-                                        let parts = selected.split(separator: " ")
-                                        let number = parts.compactMap { Int($0) }.first ?? 1000
-                                        let isNew = selected.contains("(new)")
-                                        
-                                        let age = isNew ? 1 : Int.random(in: 5...15)
-                                        
-                                        let machine = Machine(
-                                            name: "Machine \(number)",
-                                            number: number,
-                                            age: age
-                                        )
-                                        
-                                        purchasedMachines.append(machine)
-                                    }
+                                    let newMachine = selected.clone()
+                                    purchasedMachines.append(newMachine)
+                                    savePurchasedMachines()
 
                                     showingPopup = false
                                 }
-                                .disabled(selectedMachine == nil)
+                                .disabled(selectedMachineID == nil)
                             }
                         }
                         .frame(width: 300, height: 350)
@@ -150,6 +166,8 @@ struct ShirtMachineView: View {
         )
     }
 }
+
+// ✅ MACHINE CARD
 private struct MachineCard: View {
     @ObservedObject var machine: Machine
     
@@ -177,10 +195,11 @@ private struct MachineCard: View {
             HStack {
                 Button("Upgrade") {
                     machine.upgradeLevel += 1
+                    // Persistence handled by parent via onChange
                 }
 
                 Button("Maintain") {
-                    machine.condition = 100
+                    machine.condition = min(100, machine.condition + 10)
                 }
             }
             .font(.caption)
@@ -191,7 +210,9 @@ private struct MachineCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
+
 #Preview {
     ShirtMachineView()
         .environmentObject(StoreWallet(cash: 1000))
 }
+

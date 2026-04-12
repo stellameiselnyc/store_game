@@ -3,7 +3,7 @@ import SwiftUI
 import Combine
 
 class Machine: ObservableObject, Identifiable {
-    let id = UUID()
+    let id: UUID
     
     var name: String
     var number: Int
@@ -16,11 +16,12 @@ class Machine: ObservableObject, Identifiable {
 
     var efficiency: Int {
         let wearPenalty = (number * age) / 2
-        let upgradeBonus = upgradeLevel * 10
         let conditionFactor = Double(condition) / 100.0
-        
-        let raw = baseEfficiency - wearPenalty + upgradeBonus
-        return max(1, Int(Double(raw) * conditionFactor))
+        let doublingFactor = pow(2.0, Double(upgradeLevel)) // doubles per upgrade level
+
+        let raw = Double(baseEfficiency - wearPenalty) * doublingFactor
+        let adjusted = max(1.0, raw * conditionFactor)
+        return Int(adjusted)
     }
 
     func ageMachine() {
@@ -31,7 +32,51 @@ class Machine: ObservableObject, Identifiable {
         condition = max(0, condition - (5 + extraWear))
     }
     
-    init(name: String, number: Int, age: Int) {
+    /// Returns a deep copy of this Machine with identical properties.
+    func clone() -> Machine {
+        let copy = Machine(name: self.name, number: self.number, age: self.age)
+        copy.upgradeLevel = self.upgradeLevel
+        copy.condition = self.condition
+        return copy
+    }
+    
+    struct Snapshot: Codable, Identifiable {
+        let id: UUID
+        let name: String
+        let number: Int
+        let age: Int
+        let upgradeLevel: Int
+        let condition: Int
+    }
+
+    func snapshot() -> Snapshot {
+        Snapshot(id: self.id,
+                 name: self.name,
+                 number: self.number,
+                 age: self.age,
+                 upgradeLevel: self.upgradeLevel,
+                 condition: self.condition)
+    }
+
+    convenience init(snapshot: Snapshot) {
+        self.init(name: snapshot.name, number: snapshot.number, age: snapshot.age, id: snapshot.id)
+        self.upgradeLevel = snapshot.upgradeLevel
+        self.condition = snapshot.condition
+    }
+    
+    // MARK: - Persistence helpers
+    static func encode(_ machines: [Machine]) -> Data? {
+        let snapshots = machines.map { $0.snapshot() }
+        return try? JSONEncoder().encode(snapshots)
+    }
+
+    static func decode(_ data: Data) -> [Machine] {
+        guard let snapshots = try? JSONDecoder().decode([Machine.Snapshot].self, from: data) else { return [] }
+        return snapshots.map { Machine(snapshot: $0) }
+    }
+    
+    init(name: String, number: Int, age: Int, id: UUID = UUID()) {
+        self.id = id
         self.name = name
         self.number = number
         self.age = age
@@ -39,3 +84,4 @@ class Machine: ObservableObject, Identifiable {
         self.condition = max(30, 100 - (age * 3))
     }
 }
+
