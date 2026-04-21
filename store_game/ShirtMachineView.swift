@@ -101,7 +101,25 @@ struct ShirtMachineView: View {
 
             Spacer()
         }
-        .onAppear { loadPurchasedMachines() }
+        .onAppear {
+            loadPurchasedMachines()
+            // Ensure starting cash of $8000 if not already set/persisted
+            if wallet.cash <= 0 {
+                wallet.cash = 8000
+            }
+            // Seed a starter machine if the user has none
+            if purchasedMachines.isEmpty {
+                let starterNumber = 1000
+                let starterAge = 0
+                let starter = Machine(
+                    name: "Machine \(starterNumber)",
+                    number: starterNumber,
+                    age: starterAge
+                )
+                purchasedMachines = [starter]
+                savePurchasedMachines()
+            }
+        }
         .overlay(
             Group {
                 if showingPopup {
@@ -115,10 +133,13 @@ struct ShirtMachineView: View {
                                 .foregroundStyle(bagColor)
 
                             // ✅ FIXED PICKER
-                            Picker("Choose Machine", selection: $selectedMachineID) {
+                            Picker(selection: $selectedMachineID) {
                                 ForEach(machineOptions) { option in
-                                    Text(option.name).tag(Optional(option.id))
+                                    Text("\(option.name) • \(option.efficiency) shirts/day • cond \(option.condition)% • age \(option.age)")
+                                        .tag(Optional(option.id))
                                 }
+                            } label: {
+                                Text(selectedMachine?.name ?? "Choose Machine")
                             }
                             .pickerStyle(.menu)
                             .onChange(of: selectedMachineID) { newID in
@@ -127,6 +148,25 @@ struct ShirtMachineView: View {
                                 } else {
                                     selectedMachine = nil
                                 }
+                            }
+
+                            if let selected = selectedMachine {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(selected.name)
+                                        .font(.subheadline)
+                                        .bold()
+                                        .foregroundStyle(bagColor)
+                                    Text("\(selected.efficiency) shirts/day")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text("Condition: \(selected.condition)%")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text("Age: \(selected.age)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             }
 
                             Text("Price: $\(computedPrice)")
@@ -153,7 +193,7 @@ struct ShirtMachineView: View {
 
                                     showingPopup = false
                                 }
-                                .disabled(selectedMachineID == nil)
+                                .disabled(selectedMachineID == nil || wallet.cash < computedPrice)
                             }
                         }
                         .frame(width: 300, height: 350)
