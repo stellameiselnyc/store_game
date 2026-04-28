@@ -17,9 +17,9 @@ struct HomeView: View {
     let storeName: String
     let bagColor: Color
     
-    @AppStorage("machineID") private var machineID: Int = 0
+    @EnvironmentObject var machineModel: ShirtMachineModel
     
-    @AppStorage("machineShirtsPerDay") private var machineShirtsPerDay: Int = 0
+    @AppStorage("machineID") private var machineID: Int = 0
     
     @AppStorage("monthsData") private var monthsData: Data = Data()
     
@@ -56,9 +56,10 @@ struct HomeView: View {
     }
     
     private func shortsSoldFromMachine() -> Int {
-        // Randomly choose a percentage between 60% and 100%
-        let percentage = Double.random(in: 0.6...1.0)
-        return Int(Double(machineShirtsPerDay) * percentage)
+        // Sell between 60% and 90% of total production over 28 days
+        let percentage = Double.random(in: 0.6...0.9)
+        let totalFor28Days = Double(machineModel.shirtsPerDay) * 28.0
+        return Int(totalFor28Days * percentage)
     }
     
     private func initializeStartingMachineIfNeeded() {
@@ -66,8 +67,8 @@ struct HomeView: View {
         if machineID == 0 {
             machineID = 1000
         }
-        if machineShirtsPerDay == 0 {
-            machineShirtsPerDay = 10
+        if machineModel.shirtsPerDay == 0 {
+            machineModel.shirtsPerDay = 10
         }
         if availableCash == 0 {
             availableCash = 8000
@@ -132,7 +133,7 @@ struct HomeView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("MONTH \(record.month)")
                                 .bold()
-                            Text("\(storeName) sold \(record.shirts) shorts today.")
+                            Text("\(storeName) sold \(record.shirts) shirts today.")
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -146,16 +147,15 @@ struct HomeView: View {
             VStack {
                 Spacer()
                 Button(action: {
-                    let nextMonth = (months.map { $0.month }.max() ?? 0) + 1
-                    var updated = months
-                    updated.append(MonthRecord(month: nextMonth, shirts: shortsSoldFromMachine()))
-                    // Persist by encoding directly to @AppStorage to avoid mutating self
-                    if let data = try? JSONEncoder().encode(updated) {
+                    // Load once, mutate, then save once for efficiency
+                    var current = months
+                    let nextMonth = (current.map { $0.month }.max() ?? 0) + 1
+                    let sold = shortsSoldFromMachine()
+                    current.append(MonthRecord(month: nextMonth, shirts: sold))
+                    if let data = try? JSONEncoder().encode(current) {
                         monthsData = data
                     }
-                    if let lastShirts = updated.last?.shirts {
-                        availableCash += lastShirts * 40
-                    }
+                    availableCash += sold * 40
                 }) {
                     Image(systemName: "plus")
                         .font(.system(size: 24, weight: .bold))
@@ -180,5 +180,6 @@ struct HomeView: View {
     NavigationStack {
         HomeView(storeName: "Demo Store", bagColor: .blue)
     }
+    .environmentObject(ShirtMachineModel())
 }
 

@@ -23,7 +23,19 @@ struct ShirtMachineView: View {
         let base = selected.number
         let multiplier = selected.age < 5 ? 1.2 : 0.9
         
+        
         return Int(Double(base) * multiplier)
+    }
+    public func machineefficiency () -> Int {
+        
+        var totalefficiency: Int = 0
+        
+        for machine in purchasedMachines {
+            totalefficiency = totalefficiency + machine.efficiency
+        }
+        return totalefficiency
+
+        
     }
 
     private func savePurchasedMachines() {
@@ -75,11 +87,13 @@ struct ShirtMachineView: View {
                 for _ in 0..<5 {
                     let number = Int.random(in: 1000...9999)
                     let age = Int.random(in: 0...20)
+                    let base = Int.random(in: 80...140) // tweak range for balance
                     
                     let machine = Machine(
                         name: "Machine \(number)",
                         number: number,
-                        age: age
+                        age: age,
+                        baseEfficiency: base
                     )
                     
                     options.append(machine)
@@ -114,7 +128,8 @@ struct ShirtMachineView: View {
                 let starter = Machine(
                     name: "Machine \(starterNumber)",
                     number: starterNumber,
-                    age: starterAge
+                    age: starterAge,
+                    baseEfficiency: Int.random(in: 80...140)
                 )
                 purchasedMachines = [starter]
                 savePurchasedMachines()
@@ -135,7 +150,7 @@ struct ShirtMachineView: View {
                             // ✅ FIXED PICKER
                             Picker(selection: $selectedMachineID) {
                                 ForEach(machineOptions) { option in
-                                    Text("\(option.name) • \(option.efficiency) shirts/day • cond \(option.condition)% • age \(option.age)")
+                                    Text("\(option.name) • base \(option.baseEfficiency) • \(option.efficiency) shirts/day • cond \(option.condition)% • age \(option.age)")
                                         .tag(Optional(option.id))
                                 }
                             } label: {
