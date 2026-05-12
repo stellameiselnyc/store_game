@@ -82,7 +82,6 @@ struct NextScreenView: View {
                         }
                         NavigationLink(destination:
                             HomeView(storeName: brandName, bagColor: bagColor)
-                                .environmentObject(ShirtMachineModel())
                         ) {
                             Text("Next")
                                 .fontWeight(.semibold)
@@ -155,6 +154,5 @@ struct BrandSummaryView: View {
     NavigationStack {
         NextScreenView()
     }
-    .environmentObject(ShirtMachineModel())
 }
 

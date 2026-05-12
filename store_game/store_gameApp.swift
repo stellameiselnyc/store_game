@@ -13,6 +13,7 @@ struct store_gameApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(StoreWallet())
+            
         }
     }
 }

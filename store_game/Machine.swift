@@ -15,13 +15,14 @@ class Machine: ObservableObject, Identifiable {
     var baseEfficiency: Int // per-machine baseline efficiency
 
     var efficiency: Int {
-        let wearPenalty = (number * age) / 3  // soften penalty
+        let wearPenalty = age * 3
         let conditionFactor = Double(condition) / 100.0
         let doublingFactor = pow(2.0, Double(upgradeLevel))
-
+        
         let raw = Double(baseEfficiency - wearPenalty) * doublingFactor
-        let adjusted = max(10.0, raw * conditionFactor) // ensure starting > 1
+        let adjusted = max(10.0, raw * conditionFactor)
         return Int(adjusted)
+        
     }
 
     func ageMachine() {

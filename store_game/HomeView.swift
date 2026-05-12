@@ -1,11 +1,16 @@
 import SwiftUI
 
 
+
 struct HomeView: View {
+   
+    
     private struct MonthRecord: Codable, Identifiable {
         let id: UUID
         let month: Int
         let shirts: Int
+        
+        
         
         init(month: Int, shirts: Int, id: UUID = UUID()) {
             self.id = id
@@ -17,13 +22,21 @@ struct HomeView: View {
     let storeName: String
     let bagColor: Color
     
-    @EnvironmentObject var machineModel: ShirtMachineModel
-    
+    @EnvironmentObject var wallet: StoreWallet
     @AppStorage("machineID") private var machineID: Int = 0
+    @AppStorage("purchasedMachinesData") private var purchasedMachinesData: Data = Data()
+
+    private var totalFleetEfficiency: Int {
+        guard !purchasedMachinesData.isEmpty else { return 10 }
+        let machines = Machine.decode(purchasedMachinesData)
+        return machines.reduce(0) { $0 + $1.efficiency }
+    }
     
     @AppStorage("monthsData") private var monthsData: Data = Data()
     
-    @AppStorage("availableCash") private var availableCash: Int = 0
+   
+    
+
     
     private var months: [MonthRecord] {
         get {
@@ -55,23 +68,18 @@ struct HomeView: View {
         return Color(red: Double(blend(r)), green: Double(blend(g)), blue: Double(blend(b)), opacity: 1)
     }
     
-    private func shortsSoldFromMachine() -> Int {
-        // Sell between 60% and 90% of total production over 28 days
+    private func shirtsSoldFromFleet() -> Int {
         let percentage = Double.random(in: 0.6...0.9)
-        let totalFor28Days = Double(machineModel.shirtsPerDay) * 28.0
+        let totalFor28Days = Double(totalFleetEfficiency) * 28.0
         return Int(totalFor28Days * percentage)
     }
     
     private func initializeStartingMachineIfNeeded() {
-        // If no machine has been set yet, initialize with ID 1000 and 10 shirts/day
         if machineID == 0 {
             machineID = 1000
         }
-        if machineModel.shirtsPerDay == 0 {
-            machineModel.shirtsPerDay = 10
-        }
-        if availableCash == 0 {
-            availableCash = 8000
+        if wallet.cash == 0 {
+            wallet.cash = 8000
         }
     }
     
@@ -90,7 +98,7 @@ struct HomeView: View {
 
 
             HStack {
-                Text("Available Cash: $\(availableCash)")
+                Text("Available Cash: $\(wallet.cash)")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
@@ -133,7 +141,7 @@ struct HomeView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("MONTH \(record.month)")
                                 .bold()
-                            Text("\(storeName) sold \(record.shirts) shirts today.")
+                            Text("\(storeName) sold \(record.shirts) shirts this month.")
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -150,12 +158,12 @@ struct HomeView: View {
                     // Load once, mutate, then save once for efficiency
                     var current = months
                     let nextMonth = (current.map { $0.month }.max() ?? 0) + 1
-                    let sold = shortsSoldFromMachine()
+                    let sold = shirtsSoldFromFleet()
                     current.append(MonthRecord(month: nextMonth, shirts: sold))
                     if let data = try? JSONEncoder().encode(current) {
                         monthsData = data
                     }
-                    availableCash += sold * 40
+                    wallet.cash += sold * 40
                 }) {
                     Image(systemName: "plus")
                         .font(.system(size: 24, weight: .bold))
@@ -180,6 +188,6 @@ struct HomeView: View {
     NavigationStack {
         HomeView(storeName: "Demo Store", bagColor: .blue)
     }
-    .environmentObject(ShirtMachineModel())
+    .environmentObject(StoreWallet())
 }
 

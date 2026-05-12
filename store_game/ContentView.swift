@@ -23,7 +23,7 @@ struct ContentView: View {
                         .resizable()
                         .frame(width: 200, height: 200)
                     
-                    Text("STORE GAME")
+                    Text("LAUNCH YOUR LABEL")
                 }
                 .padding()
                 .opacity(isVisible ? 1 : 0)

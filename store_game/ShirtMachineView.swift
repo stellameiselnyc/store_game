@@ -186,6 +186,7 @@ struct ShirtMachineView: View {
 
                             Text("Price: $\(computedPrice)")
                                 .foregroundStyle(bagColor)
+                            Text("Wallet: $\(wallet.cash)")
 
                             Spacer()
 
@@ -208,7 +209,7 @@ struct ShirtMachineView: View {
 
                                     showingPopup = false
                                 }
-                                .disabled(selectedMachineID == nil || wallet.cash < computedPrice)
+                                .disabled(/* selectedMachineID == nil || */ wallet.cash < computedPrice)
                             }
                         }
                         .frame(width: 300, height: 350)
@@ -225,9 +226,20 @@ struct ShirtMachineView: View {
 // ✅ MACHINE CARD
 private struct MachineCard: View {
     @ObservedObject var machine: Machine
-    
+    @EnvironmentObject var wallet: StoreWallet
+
     let bagColor: Color
     let pastelColor: Color
+
+    private let maxUpgradeLevel = 5
+
+    private var upgradeCost: Int {
+        500 * Int(pow(2.0, Double(machine.upgradeLevel)))
+    }
+
+    private var canUpgrade: Bool {
+        machine.upgradeLevel < maxUpgradeLevel && wallet.cash >= upgradeCost
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -247,11 +259,16 @@ private struct MachineCard: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
+            Text("Upgrade Level: \(machine.upgradeLevel)/\(maxUpgradeLevel)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
             HStack {
-                Button("Upgrade") {
+                Button(machine.upgradeLevel >= maxUpgradeLevel ? "Max Level" : "Upgrade ($\(upgradeCost))") {
+                    wallet.cash -= upgradeCost
                     machine.upgradeLevel += 1
-                    // Persistence handled by parent via onChange
                 }
+                .disabled(!canUpgrade)
 
                 Button("Maintain") {
                     machine.condition = min(100, machine.condition + 10)
